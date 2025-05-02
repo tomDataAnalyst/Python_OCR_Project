@@ -7,6 +7,7 @@ from PIL import Image
 import os
 import numpy as np
 from spellchecker import SpellChecker
+import language_tool_python
 
 # ====== CONFIGURATION ======
 
@@ -21,7 +22,7 @@ processed_image_path = "data/processed_PHB.jpg"
 ocr_output_path = "data/ocr_output.txt"
 
 # Tesseract config
-custom_config = r'--oem 3 --psm 6'
+custom_config = r'--oem 3 --psm 3'
 
 # ====== FILE CHECK ======
 
@@ -67,6 +68,24 @@ ocr_result = pytesseract.image_to_string(sharpened, config=custom_config)
 
 spell = SpellChecker()
 words = ocr_result.split()
-corrected = [spell.correction(word) for word in words]
+corrected = [
+    spell.correction(word) if spell.correction(word) is not None else word
+    for word in words
+]
+corrected_text = " ".join(corrected)
 
-#
+# Initialize the language tool (English)
+tool = language_tool_python.LanguageTool('en-US')
+
+# Run grammar and context-aware corrections
+matches = tool.check(corrected_text)
+final_text = language_tool_python.utils.correct(corrected_text, matches)
+
+# Print final output
+print("\n📜 Final OCR Output (Corrected with Grammar Tool):\n")
+print(final_text)
+
+# Save to file
+with open(ocr_output_path, "w", encoding="utf-8") as f:
+    f.write(final_text)
+
